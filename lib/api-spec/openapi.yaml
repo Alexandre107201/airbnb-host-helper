@@ -1,0 +1,1011 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Airbnb Manager API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: property
+    description: Property information
+  - name: checkin
+    description: Check-in steps
+  - name: checkout
+    description: Check-out steps
+  - name: rules
+    description: House rules
+  - name: tips
+    description: Local tips & recommendations
+  - name: faq
+    description: Frequently asked questions
+  - name: portal
+    description: Guest portal
+  - name: Storage
+    description: Object storage upload and serving endpoints.
+  - name: guests
+    description: Guest history and booking records
+  - name: notifications
+    description: Checkout completion notifications
+
+paths:
+  /guests:
+    get:
+      tags: [guests]
+      operationId: listGuests
+      summary: List all guests
+      responses:
+        "200":
+          description: List of guests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GuestItem"
+    post:
+      tags: [guests]
+      operationId: createGuest
+      summary: Add a new guest record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestInput"
+      responses:
+        "201":
+          description: Guest created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestItem"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /guests/{id}:
+    get:
+      tags: [guests]
+      operationId: getGuest
+      summary: Get a single guest
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Guest found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    put:
+      tags: [guests]
+      operationId: updateGuest
+      summary: Update a guest record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestUpdate"
+      responses:
+        "200":
+          description: Guest updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestItem"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+    delete:
+      tags: [guests]
+      operationId: deleteGuest
+      summary: Delete a guest record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /checkout-notifications:
+    post:
+      tags: [notifications]
+      operationId: createCheckoutNotification
+      summary: Record a guest checkout completion event
+      responses:
+        "201":
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutNotificationItem"
+    get:
+      tags: [notifications]
+      operationId: listCheckoutNotifications
+      summary: List undismissed checkout notifications
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckoutNotificationItem"
+  /checkout-notifications/{id}/dismiss:
+    post:
+      tags: [notifications]
+      operationId: dismissCheckoutNotification
+      summary: Mark a checkout notification as dismissed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dismissed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutNotificationItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content streamed.
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /property:
+    get:
+      operationId: getProperty
+      tags: [property]
+      summary: Get property information
+      responses:
+        "200":
+          description: Property info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+    put:
+      operationId: updateProperty
+      tags: [property]
+      summary: Update property information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PropertyInput"
+      responses:
+        "200":
+          description: Updated property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /checkin-steps:
+    get:
+      operationId: listCheckinSteps
+      tags: [checkin]
+      summary: List all check-in steps
+      responses:
+        "200":
+          description: List of steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Step"
+    post:
+      operationId: createCheckinStep
+      tags: [checkin]
+      summary: Create a check-in step
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepInput"
+      responses:
+        "201":
+          description: Created step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Step"
+
+  /checkin-steps/{id}:
+    put:
+      operationId: updateCheckinStep
+      tags: [checkin]
+      summary: Update a check-in step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepUpdate"
+      responses:
+        "200":
+          description: Updated step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Step"
+    delete:
+      operationId: deleteCheckinStep
+      tags: [checkin]
+      summary: Delete a check-in step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /checkout-steps:
+    get:
+      operationId: listCheckoutSteps
+      tags: [checkout]
+      summary: List all check-out steps
+      responses:
+        "200":
+          description: List of steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Step"
+    post:
+      operationId: createCheckoutStep
+      tags: [checkout]
+      summary: Create a check-out step
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepInput"
+      responses:
+        "201":
+          description: Created step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Step"
+
+  /checkout-steps/{id}:
+    put:
+      operationId: updateCheckoutStep
+      tags: [checkout]
+      summary: Update a check-out step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepUpdate"
+      responses:
+        "200":
+          description: Updated step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Step"
+    delete:
+      operationId: deleteCheckoutStep
+      tags: [checkout]
+      summary: Delete a check-out step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /rules:
+    get:
+      operationId: listRules
+      tags: [rules]
+      summary: List all house rules
+      responses:
+        "200":
+          description: List of rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rule"
+    post:
+      operationId: createRule
+      tags: [rules]
+      summary: Create a house rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleInput"
+      responses:
+        "201":
+          description: Created rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rule"
+
+  /rules/{id}:
+    put:
+      operationId: updateRule
+      tags: [rules]
+      summary: Update a house rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleUpdate"
+      responses:
+        "200":
+          description: Updated rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rule"
+    delete:
+      operationId: deleteRule
+      tags: [rules]
+      summary: Delete a house rule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /local-tips:
+    get:
+      operationId: listLocalTips
+      tags: [tips]
+      summary: List all local tips
+      responses:
+        "200":
+          description: List of tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocalTip"
+    post:
+      operationId: createLocalTip
+      tags: [tips]
+      summary: Create a local tip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalTipInput"
+      responses:
+        "201":
+          description: Created tip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalTip"
+
+  /local-tips/{id}:
+    put:
+      operationId: updateLocalTip
+      tags: [tips]
+      summary: Update a local tip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalTipUpdate"
+      responses:
+        "200":
+          description: Updated tip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalTip"
+    delete:
+      operationId: deleteLocalTip
+      tags: [tips]
+      summary: Delete a local tip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /faq:
+    get:
+      operationId: listFaqItems
+      tags: [faq]
+      summary: List all FAQ items
+      responses:
+        "200":
+          description: List of FAQ items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FaqItem"
+    post:
+      operationId: createFaqItem
+      tags: [faq]
+      summary: Create a FAQ item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaqItemInput"
+      responses:
+        "201":
+          description: Created FAQ item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqItem"
+
+  /faq/{id}:
+    put:
+      operationId: updateFaqItem
+      tags: [faq]
+      summary: Update a FAQ item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaqItemInput"
+      responses:
+        "200":
+          description: Updated FAQ item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaqItem"
+    delete:
+      operationId: deleteFaqItem
+      tags: [faq]
+      summary: Delete a FAQ item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /guest-portal:
+    get:
+      operationId: getGuestPortal
+      tags: [portal]
+      summary: Get all guest-facing content in one request
+      responses:
+        "200":
+          description: Full guest portal data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuestPortal"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Property:
+      type: object
+      required: [id, name, address, checkInTime, checkOutTime, maxGuests, wifiName, wifiPassword, description]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        maxGuests:
+          type: integer
+        wifiName:
+          type: string
+        wifiPassword:
+          type: string
+        contactPhone:
+          type: ["string", "null"]
+        contactEmail:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+        welcomeMessage:
+          type: ["string", "null"]
+        reviewUrl:
+          type: ["string", "null"]
+        checkoutNotes:
+          type: ["string", "null"]
+
+    PropertyInput:
+      type: object
+      required: [name, address, checkInTime, checkOutTime, maxGuests, wifiName, wifiPassword, description]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        maxGuests:
+          type: integer
+        wifiName:
+          type: string
+        wifiPassword:
+          type: string
+        contactPhone:
+          type: string
+        contactEmail:
+          type: string
+        coverImageUrl:
+          type: string
+        welcomeMessage:
+          type: string
+        reviewUrl:
+          type: string
+        checkoutNotes:
+          type: string
+
+    Step:
+      type: object
+      required: [id, order, title, description]
+      properties:
+        id:
+          type: integer
+        order:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        icon:
+          type: ["string", "null"]
+        requiresConfirmation:
+          type: boolean
+
+    StepInput:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        order:
+          type: integer
+        requiresConfirmation:
+          type: boolean
+
+    StepUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        order:
+          type: integer
+        requiresConfirmation:
+          type: boolean
+
+    Rule:
+      type: object
+      required: [id, order, title, description, category]
+      properties:
+        id:
+          type: integer
+        order:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+
+    RuleInput:
+      type: object
+      required: [title, description, category]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        order:
+          type: integer
+
+    RuleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        order:
+          type: integer
+
+    LocalTip:
+      type: object
+      required: [id, title, description, category]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        address:
+          type: ["string", "null"]
+
+    LocalTipInput:
+      type: object
+      required: [title, description, category]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+
+    LocalTipUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+
+    FaqItem:
+      type: object
+      required: [id, question, answer, order]
+      properties:
+        id:
+          type: integer
+        question:
+          type: string
+        answer:
+          type: string
+        order:
+          type: integer
+
+    FaqItemInput:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        order:
+          type: integer
+
+    GuestPortal:
+      type: object
+      required: [property, checkinSteps, checkoutSteps, rules, localTips, faqItems]
+      properties:
+        property:
+          $ref: "#/components/schemas/Property"
+        checkinSteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Step"
+        checkoutSteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Step"
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rule"
+        localTips:
+          type: array
+          items:
+            $ref: "#/components/schemas/LocalTip"
+        faqItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/FaqItem"
+
+    GuestItem:
+      type: object
+      required: [id, name, checkIn, checkOut, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    GuestInput:
+      type: object
+      required: [name, checkIn, checkOut]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+    GuestUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file (e.g. image/jpeg).
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. /objects/uploads/uuid). Store this in your database.
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    CheckoutNotificationItem:
+      type: object
+      required: [id, createdAt, dismissed]
+      properties:
+        id:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        dismissed:
+          type: boolean
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
